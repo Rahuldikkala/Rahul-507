@@ -1,0 +1,39 @@
+def prims(n, edges, start):
+    graph = [[] for _ in range(n + 1)]
+
+    for u, v, w in edges:
+        graph[u].append((v, w))
+        graph[v].append((u, w))
+
+    visited = [False] * (n + 1)
+    min_edge = [float('inf')] * (n + 1)
+    min_edge[start] = 0
+
+    total = 0
+
+    for _ in range(n):
+        u = -1
+        for i in range(1, n + 1):
+            if not visited[i] and (u == -1 or min_edge[i] < min_edge[u]):
+                u = i
+
+        visited[u] = True
+        total += min_edge[u]
+
+        for v, w in graph[u]:
+            if not visited[v] and w < min_edge[v]:
+                min_edge[v] = w
+
+    return total
+
+
+n, m = map(int, input().split())
+
+edges = []
+for _ in range(m):
+    u, v, w = map(int, input().split())
+    edges.append((u, v, w))
+
+start = int(input())
+
+print(prims(n, edges, start))
