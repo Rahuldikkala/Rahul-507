@@ -1,0 +1,142 @@
+import sys
+
+def solve():
+    T, B, F, C = map(int, sys.stdin.buffer.readline().split())
+
+    n = T + 1
+
+    low = max(T, B, F + T)
+    high = min(T * (T + 1) // 2, n * (n - 1) // 2 - C)
+
+    if low > high:
+        print(-1)
+        return
+
+    # Number of ancestor-descendant pairs in the DFS tree.
+    A = low
+    N = n
+
+    depth = [0] * (N + 1)
+    parent = [0] * (N + 1)
+    children = [[] for _ in range(N + 1)]
+    graph = [[] for _ in range(N + 1)]
+
+    first_at_depth = [-1] * (N + 1)
+    first_at_depth[0] = 1
+    remaining = A
+
+    # Build a DFS tree with exactly A ancestor-descendant pairs.
+    for v in range(2, N + 1):
+        vertices_left = N - v
+        d = min(v - 1, remaining - vertices_left)
+
+        depth[v] = d
+        parent[v] = first_at_depth[d - 1]
+        children[parent[v]].append(v)
+
+        if first_at_depth[d] == -1:
+            first_at_depth[d] = v
+
+        remaining -= d
+
+    # Tree edges come first in adjacency order.
+    for u in range(1, N + 1):
+        graph[u] = children[u][:]
+
+    # Find DFS preorder and subtree ranges.
+    tin = [0] * (N + 1)
+    tout = [0] * (N + 1)
+    order = []
+
+    stack = [(1, 0)]
+    tin[1] = 0
+    order.append(1)
+
+    while stack:
+        u, index = stack[-1]
+
+        if index < len(children[u]):
+            v = children[u][index]
+            stack[-1] = (u, index + 1)
+
+            tin[v] = len(order)
+            order.append(v)
+            stack.append((v, 0))
+        else:
+            tout[u] = len(order) - 1
+            stack.pop()
+
+    # Back edges: descendant -> ancestor.
+    need_back = B
+
+    for v in range(2, N + 1):
+        u = parent[v]
+
+        while u != 0 and need_back > 0:
+            graph[v].append(u)
+            need_back -= 1
+            u = parent[u]
+
+        if need_back == 0:
+            break
+
+    # Forward edges: ancestor -> descendant, excluding tree edges.
+    need_forward = F
+
+    for v in range(2, N + 1):
+        u = parent[parent[v]]  # Skip v's direct tree-edge parent.
+
+        while u != 0 and need_forward > 0:
+            graph[u].append(v)
+            need_forward -= 1
+            u = parent[u]
+
+        if need_forward == 0:
+            break
+
+    # Cross edges: later DFS subtree -> earlier DFS subtree.
+    need_cross = C
+
+    for u in range(1, N + 1):
+        if need_cross == 0:
+            break
+
+        ch = children[u]
+
+        for i in range(len(ch)):
+            if need_cross == 0:
+                break
+
+            for j in range(i + 1, len(ch)):
+                if need_cross == 0:
+                    break
+
+                earlier_child = ch[i]
+                later_child = ch[j]
+
+                for py in range(tin[later_child], tout[later_child] + 1):
+                    if need_cross == 0:
+                        break
+
+                    source = order[py]
+
+                    for px in range(tin[earlier_child], tout[earlier_child] + 1):
+                        graph[source].append(order[px])
+                        need_cross -= 1
+
+                        if need_cross == 0:
+                            break
+
+    output = [str(N)]
+
+    for u in range(1, N + 1):
+        output.append(
+            str(len(graph[u])) +
+            ("" if not graph[u] else " " + " ".join(map(str, graph[u])))
+        )
+
+    sys.stdout.write("\n".join(output))
+
+
+if __name__ == "__main__":
+    solve()
